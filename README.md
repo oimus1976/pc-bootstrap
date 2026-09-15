@@ -44,3 +44,6 @@ Windows PC を「壊れてもすぐ戻せる」状態で
 
 
 
+## License
+
+MIT License. See `LICENSE`.
