@@ -33,13 +33,9 @@
 ### 対処（手動・即時）
 
 1. 設定 → 時刻と言語 → 言語と地域
-
 2. 関連設定 → キーボード
-
 3. **ハードウェア キーボード レイアウト**
-
 4. **日本語キーボード（106/109）** を選択
-
 5. **サインアウト or 再起動**
 
 > ※ 初回セットアップ中は最優先で対応する  
@@ -80,7 +76,7 @@ git config --global --list
 
 この設定が無いと、以下のエラーで止まる。
 
-```
+```text
 Author identity unknown
 fatal: unable to auto-detect email address
 ```
@@ -111,37 +107,27 @@ mkdir docs bootstrap terminal git powershell keyboard install
 
 ---
 
-## Step 4: tree コマンドの整備（Git Bash 用）
+## Step 4: tree コマンドの確認
 
-### 問題
+Windows 10 / 11 には標準の `tree` コマンドがあるため、まず標準コマンドを使用する。
+外部の `tree.exe` を `C:\Program Files\Git\cmd` などへ手動配置しない。
 
-* Git Bash には `tree` が無い
-* Windows 標準 `tree` は挙動が不安定
-* winget 版 Git は pacman 非搭載
+PowerShell / コマンドプロンプトで確認：
 
-### 採用方針
-
-* 外部で安定した `tree.exe` を導入
-* Git Bash から直接利用可能にする
-
-### 実施内容
-
-1. 以下から `tree.exe` を取得
-
-    [https://gnuwin32.sourceforge.net/packages/tree.htm](https://gnuwin32.sourceforge.net/packages/tree.htm)
-
-2. 実行ファイルを配置：
-
-```text
-C:\Program Files\Git\cmd\tree.exe
+```powershell
+tree /?
 ```
 
-### 日本語文字化け対策
-
-`.bashrc` に以下を追加：
+Git Bash から Windows 標準 `tree` を呼び出す場合：
 
 ```bash
-alias tree='tree -N'
+/c/Windows/System32/tree.com /F
+```
+
+必要に応じて `.bashrc` に別名を定義する：
+
+```bash
+alias wintree='/c/Windows/System32/tree.com /F'
 ```
 
 反映：
@@ -150,11 +136,7 @@ alias tree='tree -N'
 source ~/.bashrc
 ```
 
-確認：
-
-```bash
-tree -a
-```
+> 外部バイナリを追加する場合は、取得元・ハッシュ・ライセンス・更新方法を別途確認してから採用する。
 
 ---
 
@@ -173,8 +155,17 @@ bootstrap / dotfiles リポジトリ。
 
 ```gitignore
 .env
-\*.key
-\*.log
+.env.*
+*.key
+*.pem
+*.pfx
+*.p12
+.ssh/
+id_ed25519
+id_ed25519.pub
+id_rsa
+id_rsa.pub
+*.log
 Thumbs.db
 ```
 
@@ -189,8 +180,8 @@ git commit -m "chore: initialize pc-bootstrap structure"
 
 ### 重要
 
-* **GitHub リポジトリはまだ無くてよい**
-* commit は完全にローカル操作
+- **GitHub リポジトリはまだ無くてよい**
+- commit は完全にローカル操作
 
 ---
 
@@ -202,7 +193,10 @@ git commit -m "chore: initialize pc-bootstrap structure"
 ssh-keygen -t ed25519 -C "pc-bootstrap-dev"
 ```
 
-すべて Enter で進む（パスフレーズ空でも可）。
+鍵生成時は **推測されにくいパスフレーズを設定することを推奨**する。
+入力したパスフレーズは表示されない。
+
+頻繁に入力したくない場合は、秘密鍵をパスフレーズなしにするのではなく、`ssh-agent` などのエージェント利用を検討する。
 
 確認：
 
@@ -213,10 +207,13 @@ ls ~/.ssh
 期待される状態：
 
 ```text
-id\_ed25519
-id\_ed25519.pub
-known\_hosts
+id_ed25519
+id_ed25519.pub
+known_hosts
 ```
+
+> `id_ed25519` は秘密鍵。内容を表示・共有・Git管理しない。  
+> GitHub に登録するのは `id_ed25519.pub` の公開鍵のみ。
 
 ---
 
@@ -225,15 +222,15 @@ known\_hosts
 ### 公開鍵表示
 
 ```bash
-cat ~/.ssh/id\_ed25519.pub
+cat ~/.ssh/id_ed25519.pub
 ```
 
 ### GitHub 側操作
 
-* Settings → SSH and GPG keys → New SSH key
-* Title：`pc-bootstrap-dev`
-* Key type：Authentication Key
-* Key：表示された 1 行を貼り付け
+- Settings → SSH and GPG keys → New SSH key
+- Title：`pc-bootstrap-dev`
+- Key type：Authentication Key
+- Key：表示された **公開鍵** 1 行を貼り付け
 
 ---
 
@@ -255,8 +252,8 @@ Hi <username>! You've successfully authenticated, but GitHub does not provide sh
 
 ### GitHub Web
 
-* Repository name：`pc-bootstrap`
-* README / .gitignore は \*\*作らない\*\*
+- Repository name：`pc-bootstrap`
+- README / .gitignore は **作らない**
 
 ### ローカル操作
 
@@ -272,36 +269,38 @@ git push -u origin main
 
 ### Permission denied (publickey)
 
-* SSH 鍵が GitHub に未登録
-* `~/.ssh/id\_ed25519.pub` を登録する
+- SSH 鍵が GitHub に未登録
+- `~/.ssh/id_ed25519.pub` を登録する
 
-### known\_hosts はあるが接続できない
+### known_hosts はあるが接続できない
 
-* 相手確認のみ完了
-* 自分の鍵が無い／未登録
+- 相手確認のみ完了
+- 自分の鍵が無い／未登録
 
-### tree が無い
+### tree が無い／Git Bashから使いにくい
 
-* Git Bash 前提では外部導入が必要
+- Windows 標準 `tree.com` を `/c/Windows/System32/tree.com` として呼び出す
+- 外部バイナリの手動配置を前提にしない
 
 ---
 
 ## 到達状態（完了条件）
 
-* GitHub に `pc-bootstrap` が存在
-* `git push` が SSH で成功
-* フォルダ構成が確認できる
-* 次の PC でも同手順を再現可能
+- GitHub に `pc-bootstrap` が存在
+- `git push` が SSH で成功
+- フォルダ構成が確認できる
+- 次の PC でも同手順を再現可能
 
 ---
+
 ## Step X: VS Code のインストール
 
 ```powershell
 winget install --id Microsoft.VisualStudioCode
 ```
 
-* 初回は Settings Sync を有効化しない
-* 最小拡張のみ手動導入
+- 初回は Settings Sync を有効化しない
+- 最小拡張のみ手動導入
 
 ---
 
@@ -328,11 +327,10 @@ code .
 
 理由：
 
-* 今は **dotfiles 化の設計中**
-* Sync を先に入れると
-  「どこから来た設定か分からない状態」になる
+- 今は **dotfiles 化の設計中**
+- Sync を先に入れると「どこから来た設定か分からない状態」になる
 
-👉 **今日は OFF のまま**で正解。
+**今日は OFF のまま**で正解。
 
 ---
 
@@ -347,15 +345,14 @@ code --install-extension yzhang.markdown-all-in-one
 
 （Git は内蔵で十分）
 
-> Copilot / Playwright / Docker 拡張は **まだ入れない**
-> → 後で「役割別」に切る
+> Copilot / Playwright / Docker 拡張は **まだ入れない**  
+> 後で「役割別」に切る。
 
 ---
 
 ## ④ settings.json を「素材として取り出す」
 
-次の dotfiles 化に使うため、
-**いまの素の状態を保存**します。
+次の dotfiles 化に使うため、**いまの素の状態を保存**します。
 
 ### 設定ファイルの場所
 
@@ -372,6 +369,9 @@ copy `
 ```
 
 （まだ編集しない。**素材保管**）
+
+> `settings.json` には拡張機能や利用環境によってトークン、内部URL、ユーザー固有パスなどが含まれる可能性がある。  
+> 内容を確認せず、そのままGit管理対象に追加しない。
 
 ---
 
@@ -401,14 +401,12 @@ pc-bootstrap/
 
 この時点でできること：
 
-* Python / Markdown 編集
-* GitHub リポジトリ編集
-* docs/SETUP_FLOW.md 更新
-* VS Code を **汚さず**使える
+- Python / Markdown 編集
+- GitHub リポジトリ編集
+- docs/SETUP_FLOW.md 更新
+- VS Code を **汚さず**使える
 
-👉
-**「足りないから足す」より
-「必要になるまで足さない」が正解**
+**「足りないから足す」より「必要になるまで足さない」** を基本とする。
 
 ---
 
@@ -416,23 +414,27 @@ pc-bootstrap/
 
 既存の Git リポジトリ配下で Clone を実行すると、
 フォルダが入れ子になり、意図しないリポジトリを参照する。
-pc-bootstrap では clone / init は必ず CLI で行う。
+`pc-bootstrap` では clone / init は必ず CLI で行う。
 
 ---
 
 ## 次のステップ（未実施）
-### A️⃣ VS Code の dotfiles 設計に入る  
-（settings / extensions / apply スクリプト）
 
-### B️⃣ Python 環境（venv 前提）を固める  
-→ VS Code と噛み合う
+### A️⃣ VS Code の dotfiles 設計に入る
 
-### C️⃣ 残り2台の寄贈PCで  
-**SETUP_FLOW.md をなぞって再現テスト**
+settings / extensions / apply スクリプト。
+
+### B️⃣ Python 環境（venv 前提）を固める
+
+VS Code と噛み合う構成にする。
+
+### C️⃣ 残り2台の寄贈PCで再現テスト
+
+`SETUP_FLOW.md` をなぞって確認する。
 
 ### その他
 
-* Terminal 設定の適用
-* キーボード自動切替スクリプト適用
-* PowerShell / Bash 設定の dotfiles 化
-* bootstrap.ps1 の作成
+- Terminal 設定の適用
+- キーボード自動切替スクリプト適用
+- PowerShell / Bash 設定の dotfiles 化
+- bootstrap.ps1 の作成
